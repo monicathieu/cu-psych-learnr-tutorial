@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>An instructor’s introduction to learnr</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Monica Thieu, PhD (almost)" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# An instructor’s introduction to learnr
+### Monica Thieu, PhD (almost)
+### Dept of Psychology, Columbia University
+### updated: 2022-04-20
+
+---
+
+
+
+
+
+
+## Learning goals
+
+By the end of this presentation, you will be able to:
+
+--
+
+- Describe the pros and cons of learnr for instruction
+
+--
+
+- Evaluate the fit of your R lesson to a learnr tutorial
+
+--
+
+- Break down your R lesson into conceptual learnr-compatible chunks
+
+--
+
+This is not a tutorial on learnr! The [learnr package docs](https://rstudio.github.io/learnr/articles/learnr.html) and [RStudio forums](https://community.rstudio.com/tag/learnr) are excellent resources for actually setting up a tutorial.
+
+--
+
+However, I will be highlighting specific learnr features or syntax when they are relevant to conceptual assignment design.
+
+---
+
+class: inverse, middle
+
+# What is learnr?
+
+---
+
+## What is learnr?
+
+.pull-left[
+
+learnr is a package that allows you to publish documents with **interactive, runnable R code chunks.**
+
+You can use it for many applications, including **interactive textbook-style self-teaching documents** and **problem sets.**
+
+]
+
+.pull-right[
+
+![learnr logo](https://rstudio.github.io/learnr/logo.png)
+
+]
+
+---
+
+layout: true
+
+## How does learnr work?
+
+---
+
+Very high-level:
+
+--
+
+`learnr` uses the Shiny prerendered R Markdown document engine to create interactive documents.
+
+--
+
+After downloading the package, configuring it as a tutorial only requires setting the R Markdown YAML header:
+
+```yaml
+title: "My learnr tutorial"
+output: learnr::tutorial
+runtime: shiny_prerendered
+```
+
+---
+
+Chunks are turned into interactive exercises using the `exercise = TRUE` chunk option.
+
+&gt; Change the code below to calculate 1 + 2 instead.
+
+
+```r
+# {r question-1, exercise = TRUE}
+1 + 1
+```
+
+--
+
+`learnr` documents differ from regular Rmds in one key way:
+
+For the most part, each exercise chunk must be able to run independently. **Exercise chunks cannot inherit the output of prior exercise chunks.**
+
+???
+
+https://stackoverflow.com/questions/70024831/chunks-in-text-rmarkdown-xaringan
+
+---
+
+However, you can pre-run setup code for a code chunk.
+
+--
+
+For example, you can pre-`library()` a package:
+
+
+```r
+# {r setup, include = FALSE}
+library(tidyverse)
+```
+
+--
+
+Or you can preload a dataframe, so that it is accessible to students at the beginning of the exercise:
+
+
+```r
+# {r preload-data}
+load("data/example_data.rda")
+```
+
+
+```r
+# {r question-2, exercise = TRUE, exercise.setup = "preload-data"}
+example_data
+```
+
+---
+
+You can pre-fill exercises, so students only need to add or modify code.
+
+&gt; Fill in the correct argument/value to calculate the mean of the `price` column in `diamonds`, excluding any NA values.
+
+
+```r
+# {r question-4, exercise = TRUE}
+mean(diamonds$price, ___ = ___)
+```
+
+---
+
+.pull-left[
+
+You can include non-exercise code chunks and hide their source with `echo = FALSE`, so that students can see the solution output and compare their output to it.
+
+&gt; Add the correct geom to produce a scatter plot of diamond price vs. diamond weight in carats.
+
+]
+
+.pull-right[
+
+
+```r
+# {r question-5-solution}
+ggplot(diamonds,
+       aes(x = carat,
+           y = price)) +
+  geom_point()
+```
+
+![](slides_files/figure-html/unnamed-chunk-6-1.svg)&lt;!-- --&gt;
+
+
+```r
+# {r question-5, exercise = TRUE}
+ggplot(diamonds,
+       aes(x = carat,
+           y = price))
+```
+
+]
+
+---
+
+.pull-left[
+
+You can auto-grade students' responses via `learnr`'s integration with the `gradethis` package.
+
+It isn't all-powerful, but it can save you time and help students self-teach while doing assignments!
+
+]
+
+.pull-right[
+
+![gradethis package logo](https://pkgs.rstudio.com/gradethis/logo.png)
+
+]
+
+---
+
+layout: false
+
+## When to just have students fill in an R Markdown?
+
+`learnr` is not always the best use of your efforts, though, depending on the nature of your assignment.
+
+
+|Criterion                            |learnr                         |Rmd                      |
+|:------------------------------------|:------------------------------|:------------------------|
+|Assess whether students can write:   |code snippets                  |a full analysis          |
+|Students need to produce:            |code &amp; multiple choice answers |code &amp; short answer text |
+|You want to grade:                   |programmatically               |visually                 |
+|Do students need to be able to knit? |no                             |yes                      |
+
+
+---
+class: inverse, middle
+
+# Designing a learnr assignment
+
+---
+
+## How to design a learnr-compatible problem set
+
+Approximately following the principles of [backward design](https://cft.vanderbilt.edu/guides-sub-pages/understanding-by-design/)...
+--
+
+- Define the right answer
+
+--
+
+- Modularize exercises
+
+--
+
+- Pre-fill exercise chunks with intention
+
+---
+
+layout: true
+
+### Define the right answer
+
+---
+
+--
+
+**Operationalize what counts as the correct answer.**
+
+--
+
+Decide what the output _object_ needs to look like. A single value, a vector, a dataframe, a model object--it can be any R object!
+
+--
+
+Ideally, you will be able to test that the student's output is equivalent to a solution object.
+
+--
+
+You can do this several ways, but the most straightforward way is to write solution code, and `learnr` will automatically compare the result of the student's code with the result of the solution chunk.
+
+
+```r
+# {r question, exercise = TRUE}
+diamonds
+```
+
+
+```r
+# {r question-solution}
+diamonds %&gt;% 
+  group_by(color) %&gt;% 
+  summarize(mean_carat = mean(carat))
+```
+
+---
+
+Decide what _functions_ need to be used to produce that output. 
+
+--
+
+You can also grade an exercise based on the functions used.
+
+--
+
+For example, including `gradethis::grade_code()` in another chunk along with a solution chunk will check the written code is equivalent, not just the result.
+
+
+```r
+# {r question-code-check}
+gradethis::grade_code()
+```
+
+---
+
+Identify common wrong answers, so that you can give students more informative hints if they make a common mistake.
+
+--
+
+You can customize some grading functions to give specific messages when the result matches some particular type of wrong answer.
+
+
+```r
+# {r question-check}
+gradethis::grade_result(
+  fail_if(~identical(.result,
+                     diamonds %&gt;% summarize(mean_carat = mean(carat))),
+          "You forgot to group the data before summarizing."),
+  pass()
+)
+```
+
+---
+
+layout: true
+
+### Modularize exercises
+
+---
+
+--
+
+Once you have defined the right answer (and some predictable wrong ones) for a particular exercise...
+
+--
+
+**Break down your assignment into manageable, grade-able code snippets.**
+
+--
+
+This makes it easier for you to scaffold students' code. If you're teaching in the tidyverse, this logic plays very well with the sequential nature of the pipe (`%&gt;%` or `|&gt;`).
+
+--
+
+It also makes it easier to grade the result of smaller pieces of code (fewer commands means fewer possible wrong answers).
+
+--
+
+_However, remember that you cannot make an exercise chunk dependent on students' responses in prior chunks!_
+
+--
+
+You can deal with this in one of two ways.
+
+---
+
+**Option 1:** You can "spoil" the right answer to a previous exercise in the current exercise.
+
+--
+
+&gt; Use `group_by()` to group the `diamonds` dataframe by diamond color category.
+
+
+```r
+# {r question, exercise = TRUE}
+diamonds %&gt;% 
+  group_by(color)
+```
+
+--
+
+&gt; Next, use `summarize()` on the grouped data to calculate the mean weight in carats of each diamond color category, in a new column called `mean_carat`.
+
+
+```r
+# {r question, exercise = TRUE}
+diamonds %&gt;% 
+  group_by(color) %&gt;% 
+  summarize(mean_carat = mean(carat))
+```
+
+---
+
+You can require the previous exercise to be answered correctly in order to reveal the current exercise, using progressive reveal:
+
+--
+
+```yaml
+title: "My learnr tutorial"
+output:
+  learnr::tutorial:
+**    progressive: true
+runtime: shiny_prerendered
+```
+
+--
+
+However, this requires that students be able to see whether their exercise code is "correct" upon running the chunk.
+
+--
+
+By default, when code solutions/grading are provided, `learnr` allows students to see whether their code is correct or incorrect when they submit, but you can turn this off.
+
+--
+
+You may have reasons for not wanting students to be able to immediately see whether they've gotten the right answer, in which case this option will not work well for you.
+
+---
+
+**Option 2:** You can also just ask students to fill in a multi-line answer in a single exercise.
+
+--
+
+&gt; Use `group_by()` and `summarize()` to calculate the mean weight in carats of each diamond color category, in a new column called `mean_carat`.
+
+
+```r
+# {r question, exercise = TRUE}
+diamonds
+```
+
+--
+
+There more ways for students to get the wrong answer with the increased flexibility, so you may get more panicky/confused emails about these questions. Still, this may be the right amount of scaffolding (not that much) depending on the topic and the students.
+
+---
+
+layout: true
+
+### Pre-fill exercise chunks with intention
+
+---
+
+--
+
+Once you have your solutions defined and chunks modularized, you can decide what default code shows up for students when they start each exercise.
+
+--
+
+You can leave exercise chunks totally empty, or you can fill them in with some amount of helper code.
+
+`learnr` allows you to put blanks in place of function &amp; variable names, using three underscores `___`. The exercise will prompt students to replace the blanks with real code.
+
+---
+
+&gt; Use `group_by()` and `summarize()` to calculate the mean weight in carats of each diamond color category, in a new column called `mean_carat`.
+
+--
+
+Least amount of helper code:
+
+
+```r
+# {r question, exercise = TRUE}
+diamonds
+```
+
+--
+
+Slightly more helper code:
+
+
+```r
+# {r question, exercise = TRUE}
+diamonds %&gt;% 
+  ___() %&gt;% 
+  ___()
+```
+
+--
+
+Even more helper code:
+
+
+```r
+# {r question, exercise = TRUE}
+diamonds %&gt;% 
+  ___() %&gt;% 
+  ___(mean_carat = ___)
+```
+
+---
+
+You want to balance the following goals when deciding how much helper code to write:
+
+--
+
+- Giving away the right amount of answer
+
+--
+
+- Giving enough hints/structure so students know where to start
+
+--
+
+- Helping with things they don't need to have learned yet
+
+--
+
+- Pre-filling things like column names that you need spelled correctly for programmatic grading
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
